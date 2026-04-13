@@ -5,16 +5,15 @@ import 'theme.dart';
 import 'scans.dart';
 
 class DashboardPage extends StatelessWidget {
-  // Example user:
-  final String userName = "User";
-  final String userEmail = "user@example.com";
-  final String joinDate = "...";
-  final int totalScans = 0;
+  final Map<String, dynamic> user;
 
-  const DashboardPage({super.key});
+  const DashboardPage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
+    final String userName = user['name'] as String? ?? 'User';
+    final String userEmail = user['email'] as String? ?? '';
+
     return AppBackground(
       child: SafeArea(
         child: SingleChildScrollView(
@@ -22,11 +21,7 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _WelcomeCard(
-                userName: userName,
-                userEmail: userEmail,
-                joinDate: joinDate,
-              ),
+              _WelcomeCard(userName: userName, userEmail: userEmail),
               const SizedBox(height: 20),
 
               Row(
@@ -35,7 +30,7 @@ class DashboardPage extends StatelessWidget {
                     child: _StatCard(
                       icon: Icons.qr_code_scanner_rounded,
                       label: "Scans count",
-                      value: "$totalScans",
+                      value: "0",
                       color: AppTheme.accent,
                     ),
                   ),
@@ -98,13 +93,8 @@ class DashboardPage extends StatelessWidget {
 class _WelcomeCard extends StatelessWidget {
   final String userName;
   final String userEmail;
-  final String joinDate;
 
-  const _WelcomeCard({
-    required this.userName,
-    required this.userEmail,
-    required this.joinDate,
-  });
+  const _WelcomeCard({required this.userName, required this.userEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +126,6 @@ class _WelcomeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,24 +162,6 @@ class _WelcomeCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       userEmail,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.muted,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 13,
-                      color: AppTheme.muted,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      "Member since $joinDate",
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.muted,
@@ -257,19 +228,6 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: AppTheme.border,
     );
   }
 }

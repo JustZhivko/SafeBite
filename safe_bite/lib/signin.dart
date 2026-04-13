@@ -1,11 +1,62 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'background.dart';
 import 'glass_container.dart';
 import 'gradient_button.dart';
 
-class SignInPage extends StatelessWidget {
+class SignInPage extends StatefulWidget {
+  final void Function(Map<String, dynamic> user) onLoginSuccess;
+
+  const SignInPage({super.key, required this.onLoginSuccess});
+
+  @override
+  State<SignInPage> createState() => _SignInPageState();
+}
+
+class _SignInPageState extends State<SignInPage> {
   final email = TextEditingController();
   final password = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  static const String _baseUrl = 'http://localhost:5000';
+
+  Future<void> _login() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.text.trim(),
+          'password': password.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200) {
+        widget.onLoginSuccess(data['user'] as Map<String, dynamic>);
+      } else {
+        setState(() {
+          _error = data['error'] as String? ?? 'Login failed.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Cannot connect to server. Check your connection.';
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +76,7 @@ class SignInPage extends StatelessWidget {
 
                 TextField(
                   controller: email,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: "Email"),
                 ),
 
@@ -36,9 +88,45 @@ class SignInPage extends StatelessWidget {
                   decoration: const InputDecoration(labelText: "Password"),
                 ),
 
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.redAccent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 20),
 
-                GradientButton(text: "Login", onTap: () {}),
+                _loading
+                    ? const CircularProgressIndicator(color: Color(0xFFA855F7))
+                    : GradientButton(text: "Login", onTap: _login),
               ],
             ),
           ),

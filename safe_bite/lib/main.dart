@@ -34,22 +34,46 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
-  bool _isLoggedIn = true;
+  bool _isLoggedIn = false;
+  Map<String, dynamic>? _currentUser;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  List<Widget> get _pages => [
-    _isLoggedIn ? const DashboardPage() : WelcomePage(),
-    AboutPage(),
-    SignInPage(),
-    SignUpPage(),
-  ];
+  void _onLoginSuccess(Map<String, dynamic> user) {
+    setState(() {
+      _isLoggedIn = true;
+      _currentUser = user;
+      _selectedIndex = 0;
+    });
+  }
 
-  List<String> get _titles => [
-    _isLoggedIn ? 'Dashboard' : 'Welcome',
-    'About us',
-    'Sign In',
-    'Sign Up',
-  ];
+  void _onLogout() {
+    setState(() {
+      _isLoggedIn = false;
+      _currentUser = null;
+      _selectedIndex = 0;
+    });
+  }
+
+  List<Widget> get _pages {
+    if (_isLoggedIn) {
+      return [DashboardPage(user: _currentUser!), AboutPage()];
+    } else {
+      return [
+        WelcomePage(),
+        AboutPage(),
+        SignInPage(onLoginSuccess: _onLoginSuccess),
+        SignUpPage(onLoginSuccess: _onLoginSuccess),
+      ];
+    }
+  }
+
+  List<String> get _titles {
+    if (_isLoggedIn) {
+      return ['Dashboard', 'About us'];
+    } else {
+      return ['Welcome', 'About us', 'Sign In', 'Sign Up'];
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -130,10 +154,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              _drawerItem(_isLoggedIn ? 'Dashboard' : 'Welcome', 0),
-              _drawerItem('About us', 1),
-              _drawerItem('Sign In', 2),
-              _drawerItem('Sign Up', 3),
+              if (_isLoggedIn) ...[
+                _drawerItem('Dashboard', 0),
+                _drawerItem('About us', 1),
+                _logoutDrawerItem(),
+              ] else ...[
+                _drawerItem('Welcome', 0),
+                _drawerItem('About us', 1),
+                _drawerItem('Sign In', 2),
+                _drawerItem('Sign Up', 3),
+              ],
             ],
           ),
         ),
@@ -165,4 +195,32 @@ class _MyHomePageState extends State<MyHomePage> {
       onTap: () => _onItemTapped(index),
     );
   }
+
+  Widget _logoutDrawerItem() {
+    return ListTile(
+      title: const Text(
+        'Log Out',
+        style: TextStyle(color: Color(0xFFFC8181), fontWeight: FontWeight.w500),
+      ),
+      leading: const Icon(
+        Icons.logout_rounded,
+        color: Color(0xFFFC8181),
+        size: 20,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onTap: () async {
+        Navigator.pop(context);
+        await _performLogout();
+      },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      _callLogoutApi();
+    } catch (_) {}
+    _onLogout();
+  }
+
+  Future<void> _callLogoutApi() async {}
 }
