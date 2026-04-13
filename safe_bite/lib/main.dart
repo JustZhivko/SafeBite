@@ -3,6 +3,7 @@ import 'welcome_page.dart';
 import 'about_us.dart';
 import 'signin.dart';
 import 'signup.dart';
+import 'dashboard.dart';
 import 'theme.dart';
 import 'background.dart';
 
@@ -18,11 +19,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SafeBite',
       theme: AppTheme.darkTheme,
-
       builder: (context, child) {
         return AppBackground(child: child!);
       },
-
       home: MyHomePage(),
     );
   }
@@ -35,16 +34,22 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  bool _isLoggedIn = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Widget> _pages = [
-    WelcomePage(),
+  List<Widget> get _pages => [
+    _isLoggedIn ? const DashboardPage() : WelcomePage(),
     AboutPage(),
     SignInPage(),
     SignUpPage(),
   ];
 
-  final List<String> _titles = ['Welcome', 'About us', 'Sign In', 'Sign Up'];
+  List<String> get _titles => [
+    _isLoggedIn ? 'Dashboard' : 'Welcome',
+    'About us',
+    'Sign In',
+    'Sign Up',
+  ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -58,7 +63,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       key: _scaffoldKey,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
@@ -87,7 +91,6 @@ class _MyHomePageState extends State<MyHomePage> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
       ),
-
       drawer: Drawer(
         child: Container(
           decoration: const BoxDecoration(
@@ -127,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              _drawerItem('Welcome', 0),
+              _drawerItem(_isLoggedIn ? 'Dashboard' : 'Welcome', 0),
               _drawerItem('About us', 1),
               _drawerItem('Sign In', 2),
               _drawerItem('Sign Up', 3),
@@ -135,7 +138,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-
       body: _pages[_selectedIndex],
     );
   }
