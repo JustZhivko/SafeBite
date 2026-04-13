@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'background.dart';
 import 'glass_container.dart';
 import 'theme.dart';
+import 'scans.dart';
 
 class DashboardPage extends StatelessWidget {
   // Example user:
@@ -48,9 +49,41 @@ class DashboardPage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               GlassContainer(
-                padding: const EdgeInsets.all(0),
-                child: Column(children: const [
-                    
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accent2,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radius,
+                            ),
+                          ),
+                          elevation: 6,
+                          shadowColor: AppTheme.accent2.withOpacity(0.5),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ScansPage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "See Scans",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
