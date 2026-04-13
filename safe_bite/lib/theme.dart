@@ -78,12 +78,12 @@ class AppTheme {
       ),
       bodyMedium: TextStyle(
         color: Colors.white.withOpacity(0.88),
-        fontSize: 14,
+        fontSize: 25,
         shadows: subtleGlow,
       ),
       bodySmall: TextStyle(
         color: Colors.white.withOpacity(0.65),
-        fontSize: 12,
+        fontSize: 20,
         shadows: subtleGlow,
       ),
 
