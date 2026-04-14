@@ -14,14 +14,6 @@ def get_db_path() -> str:
     )
 
 
-def get_allowed_origins() -> list[str]:
-    raw = os.environ.get(
-        "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:*,http://127.0.0.1:*",
-    )
-    return [o.strip() for o in raw.split(",") if o.strip()]
-
-
 def create_app() -> Flask:
     app = Flask(__name__)
 
@@ -61,15 +53,22 @@ def create_app() -> Flask:
                 """
                 CREATE TABLE IF NOT EXISTS food_captures (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
                     filename TEXT NOT NULL,
                     response_text TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id)
+                    created_at TEXT NOT NULL
                 )
                 """
             )
             conn.commit()
+
+            try:
+                conn.execute(
+                    "ALTER TABLE food_captures ADD COLUMN user_id INTEGER REFERENCES users(id)"
+                )
+                conn.commit()
+            except Exception:
+                pass
+
         finally:
             conn.close()
 
@@ -192,9 +191,18 @@ def create_app() -> Flask:
 
     @app.get("/api/captures")
     def list_captures():
-        user = current_user()
-        if user is None:
-            return jsonify({"error": "Unauthorized."}), 401
+        
+        raw = request.args.get("user_id")
+        if raw is not None:
+            try:
+                user_id = int(raw)
+            except ValueError:
+                return jsonify({"error": "Invalid user_id."}), 400
+        else:
+            user = current_user()
+            if user is None:
+                return jsonify({"error": "Unauthorized."}), 401
+            user_id = user["id"]
 
         conn = get_conn()
         try:
@@ -205,9 +213,13 @@ def create_app() -> Flask:
                 WHERE user_id = ?
                 ORDER BY datetime(created_at) DESC
                 """,
-                (user["id"],),
+                (user_id,),
             ).fetchall()
-            captures = [dict(r) for r in rows]
+            base_url = os.environ.get("UPLOADS_BASE_URL", "http://localhost:5001/uploads")
+            captures = [
+                {**dict(r), "image_url": f"{base_url}/{r['filename']}"}
+                for r in rows
+            ]
             return jsonify({"captures": captures}), 200
         finally:
             conn.close()
