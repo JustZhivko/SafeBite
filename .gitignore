@@ -306,3 +306,6 @@ __marimo__/
 
 .idea/
 .vscode/
+
+#ESP32_TEST WIFI credentials
+**/secrets.h
