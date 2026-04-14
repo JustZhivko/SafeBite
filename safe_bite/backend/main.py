@@ -186,7 +186,7 @@ def receive_message():
 
 @app.route("/audio.wav")
 def send_audio():
-    return send_file("audio.wav", mimetype="audio/wav")
+    return send_file("output_16bit_mono.wav", mimetype="audio/wav")
 
 
 if __name__ == "__main__":

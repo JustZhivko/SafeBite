@@ -4,7 +4,7 @@ import subprocess
 
 def tts(text_response):
     filename = "response.mp3"
-    output_file = "output_8bit_mono.wav"
+    output_file = "output_16bit_mono.wav"
 
     tts = gTTS(text=text_response, lang="bg")
     tts.save(filename)
@@ -14,8 +14,8 @@ def tts(text_response):
         "-y",
         "-i", filename,
         "-ac", "1",
-        "-ar", "16000",
-        "-acodec", "pcm_u8",
+        "-ar", "24000",
+        "-acodec", "pcm_s16le",
         output_file
     ]
 
