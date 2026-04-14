@@ -16,6 +16,9 @@ configure()
 
 app = Flask(__name__)
 
+from flask_cors import CORS
+CORS(app)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -37,9 +40,85 @@ def get_db_path() -> str:
     return os.path.join(BASE_DIR, "..", "database", "app.db")
 
 
+def get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(os.path.abspath(get_db_path()))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+# ── Active user — saved in database ────────────────────────────────
+
+def init_active_user_table() -> None:
+    conn = get_conn()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS active_user (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                user_id INTEGER
+            )
+        """)
+        # only one row
+        conn.execute("INSERT OR IGNORE INTO active_user (id, user_id) VALUES (1, NULL)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def db_get_active_user_id() -> int | None:
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT user_id FROM active_user WHERE id = 1").fetchone()
+        return row["user_id"] if row else None
+    finally:
+        conn.close()
+
+
+def db_set_active_user_id(user_id: int | None) -> None:
+    conn = get_conn()
+    try:
+        conn.execute("UPDATE active_user SET user_id = ? WHERE id = 1", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+init_active_user_table()
+
+
+# ── Active user endpoints (called by Flutter) ─────────────────────────────
+
+@app.route("/set-active-user", methods=["POST"])
+def set_active_user():
+    payload = request.get_json(silent=True) or {}
+    raw = payload.get("user_id")
+    if raw is None:
+        return jsonify({"error": "user_id is required."}), 400
+    try:
+        user_id = int(raw)
+    except (ValueError, TypeError):
+        return jsonify({"error": "user_id must be an integer."}), 400
+
+    db_set_active_user_id(user_id)
+    print(f"[active-user] set → {user_id}")
+    return jsonify({"ok": True, "active_user_id": user_id}), 200
+
+
+@app.route("/clear-active-user", methods=["POST"])
+def clear_active_user():
+    db_set_active_user_id(None)
+    print("[active-user] cleared")
+    return jsonify({"ok": True}), 200
+
+
+@app.route("/active-user", methods=["GET"])
+def get_active_user():
+    return jsonify({"active_user_id": db_get_active_user_id()}), 200
+
+
+# ── Upload / AI endpoint (called by ESP32) ────────────────────────────────
+
 def save_capture_record(filename: str, response_text: str, user_id: int | None = None) -> None:
-    path = os.path.abspath(get_db_path())
-    conn = sqlite3.connect(path)
+    conn = get_conn()
     try:
         conn.execute(
             """
@@ -89,15 +168,9 @@ def receive_message():
         text_response = response.text.strip()
         print(text_response)
 
-        user_id = None
-        raw_user_id = request.args.get("user_id")
-        if raw_user_id is not None:
-            try:
-                user_id = int(raw_user_id)
-            except ValueError:
-                user_id = None
-
-        save_capture_record(filename, text_response, user_id)
+        # Collecting the active user from db
+        active_user_id = db_get_active_user_id()
+        save_capture_record(filename, text_response, active_user_id)
 
         if TTS_ENABLED:
             tts(str(text_response))
@@ -108,9 +181,7 @@ def receive_message():
         }), 200
 
     else:
-        return jsonify({
-            "status": "running"
-        }), 200
+        return jsonify({"status": "running"}), 200
 
 
 @app.route("/audio.wav")

@@ -20,7 +20,8 @@ class _SignInPageState extends State<SignInPage> {
   bool _loading = false;
   String? _error;
 
-  static const String _baseUrl = 'http://localhost:5000';
+  static const String _authBaseUrl = 'http://localhost:5000';
+  static const String _captureBaseUrl = 'http://localhost:5001';
 
   Future<void> _login() async {
     setState(() {
@@ -30,7 +31,7 @@ class _SignInPageState extends State<SignInPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/login'),
+        Uri.parse('$_authBaseUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email.text.trim(),
@@ -41,7 +42,12 @@ class _SignInPageState extends State<SignInPage> {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200) {
-        widget.onLoginSuccess(data['user'] as Map<String, dynamic>);
+        final user = data['user'] as Map<String, dynamic>;
+
+        // if the user is active, it's known by main.py
+        await _setActiveUser(user['id'] as int);
+
+        widget.onLoginSuccess(user);
       } else {
         setState(() {
           _error = data['error'] as String? ?? 'Login failed.';
@@ -56,6 +62,16 @@ class _SignInPageState extends State<SignInPage> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _setActiveUser(int userId) async {
+    try {
+      await http.post(
+        Uri.parse('$_captureBaseUrl/set-active-user'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      );
+    } catch (_) {}
   }
 
   @override

@@ -3,3 +3,4 @@ gTTS
 google-genai
 python-dotenv
 datetime
+flask-cors
