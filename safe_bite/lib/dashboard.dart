@@ -1,19 +1,56 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'background.dart';
 import 'glass_container.dart';
 import 'theme.dart';
 import 'scans.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   final Map<String, dynamic> user;
 
   const DashboardPage({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
-    final String userName = user['name'] as String? ?? 'User';
-    final String userEmail = user['email'] as String? ?? '';
+  State<DashboardPage> createState() => _DashboardPageState();
+}
 
+class _DashboardPageState extends State<DashboardPage> {
+  static const String _baseUrl = 'http://localhost:5000';
+
+  int _scanCount = 0;
+  bool _countLoading = true;
+
+  late final int _userId;
+  late final String _userName;
+  late final String _userEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _userId = widget.user['id'] as int;
+    _userName = widget.user['name'] as String? ?? 'User';
+    _userEmail = widget.user['email'] as String? ?? '';
+    _fetchScanCount();
+  }
+
+  Future<void> _fetchScanCount() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/api/captures?user_id=$_userId');
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final captures = data['captures'] as List<dynamic>;
+        setState(() => _scanCount = captures.length);
+      }
+    } catch (_) {
+    } finally {
+      setState(() => _countLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AppBackground(
       child: SafeArea(
         child: SingleChildScrollView(
@@ -21,7 +58,7 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _WelcomeCard(userName: userName, userEmail: userEmail),
+              _WelcomeCard(userName: _userName, userEmail: _userEmail),
               const SizedBox(height: 20),
 
               Row(
@@ -30,7 +67,7 @@ class DashboardPage extends StatelessWidget {
                     child: _StatCard(
                       icon: Icons.qr_code_scanner_rounded,
                       label: "Scans count",
-                      value: "0",
+                      value: _countLoading ? '…' : '$_scanCount',
                       color: AppTheme.accent,
                     ),
                   ),
@@ -62,13 +99,15 @@ class DashboardPage extends StatelessWidget {
                           elevation: 6,
                           shadowColor: AppTheme.accent2.withOpacity(0.5),
                         ),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ScansPage(),
+                              builder: (_) => ScansPage(userId: _userId),
                             ),
                           );
+                          // refresh count when returning from ScansPage
+                          _fetchScanCount();
                         },
                         child: const Text(
                           "See Scans",
